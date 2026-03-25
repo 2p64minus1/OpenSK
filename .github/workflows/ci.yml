@@ -17,7 +17,7 @@ jobs:
 
       - name: Build nRF52840 Dongle Hex
         run: |
-          python3 deploy.py --board nrf52840_dongle_opensk --opensk build
+          python3 deploy.py --board nrf52840_dongle_opensk --opensk
 
       - name: Upload Hex to 6800H
         uses: actions/upload-artifact@v4
