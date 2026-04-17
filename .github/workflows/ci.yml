@@ -26,7 +26,6 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip3 install cryptography ecdsa kconfiglib fido2 pycryptodome intelhex six tqdm pyyaml tockloader==1.5.0
-          
           curl -L https://github.com/NordicSemiconductor/pc-nrfutil/releases/download/v6.1.7/nrfutil-linux -o nrfutil
           chmod +x nrfutil
           sudo mv nrfutil /usr/local/bin/
@@ -35,24 +34,20 @@ jobs:
         run: |
           git config --global user.email "bot@example.com"
           git config --global user.name "OpenSK Bot"
-
           ./setup.sh
           export PATH=$PATH:$(pwd)/elf2tab/bin
-          
-          # 【核武级修正】直接修改源代码，强行注入允许 fallback 的指令
-          # 我们把这行代码塞进 libtock_console 的开头，从根源上杀掉报错
           sed -i '1i #![allow(dependency_on_unit_never_type_fallback)]' third_party/libtock-rs/apis/console/src/lib.rs
-          
-          # 加上全局赦免，防止其他库也闹事
           export RUSTFLAGS="-Awarnings"
           
-          # 运行官方指令
-          python3 deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=nordicdfu
+          # 【最终补丁】用 echo "" 模拟按下回车，解决 EOFError
+          echo "" | python3 deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=nordicdfu
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OpenSK-Final-Package
+          # 扩大搜索范围，确保把生成的 zip 全抓回来
           path: |
-            deploy/*.hex
-            deploy/*.zip
+             *.zip
+             deploy/*.zip
+             target/nrf52840_dongle_dfu_dfu.zip
