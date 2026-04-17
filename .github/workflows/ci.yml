@@ -24,19 +24,26 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python3 -m pip install --upgrade pip
+          # 补齐所有编译、封包、FIDO2 配置所需的 Python 库
           pip3 install cryptography ecdsa kconfiglib tockloader fido2 pycryptodome intelhex six
 
       - name: Build OpenSK DFU Package
         run: |
-          # 关键点 1：执行 setup.sh 确保补丁和路径正确
+          # 1. 初始化 Tock 补丁和环境
           ./setup.sh
-          # 关键点 2：换成基础板子名 nrf52840_dongle，绕过逻辑匹配
-          python3 deploy.py --board nrf52840_dongle --opensk --programmer nordicdfu --no-unlock
+          
+          # 2. 关键：将编译工具 elf2tab 加入路径，否则 deploy.py 会报错
+          export PATH=$PATH:$(pwd)/elf2tab/bin
+          
+          # 3. 关键：使用日志建议的准确名称 nrf52840_dongle_dfu
+          # --programmer nordicdfu 确保生成的是 ZIP 升级包，不冲突原厂 Bootloader
+          python3 deploy.py --board nrf52840_dongle_dfu --opensk --programmer nordicdfu --no-unlock
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OpenSK-Final-Package
+          # 这样会导出所有生成的 hex 和 zip 包
           path: |
             deploy/*.hex
             deploy/*.zip
