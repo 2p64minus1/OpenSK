@@ -24,18 +24,19 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python3 -m pip install --upgrade pip
-          pip3 install cryptography ecdsa kconfiglib
+          # 补齐了 tockloader，确保 DFU 打包不会报错
+          pip3 install cryptography ecdsa kconfiglib tockloader
 
       - name: Build OpenSK DFU Package
         run: |
-          # 核心修正：指定 --programmer nordicdfu 适配官方蓝色板子
-          # 这会自动处理地址偏移，避免冲突
+          # 适配官方蓝色板子，自动处理地址偏移
           python3 deploy.py --board nrf52840_dongle_opensk --opensk --programmer nordicdfu --no-unlock
 
-      - name: Archive Artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: OpenSK-Nordic-DFU-Package
+          name: OpenSK-Final-Package
+          # 这样会把生成的 hex 和 zip 全部带回来
           path: |
-            deploy/nrf52840_dongle_opensk_dfu.zip
-            deploy/nrf52840_dongle_opensk.hex
+            deploy/*.hex
+            deploy/*.zip
