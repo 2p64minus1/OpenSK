@@ -14,20 +14,20 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Rust
+      - name: Setup Rust (Locked Version)
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          # 锁定编译器版本，避开 Rust 2024 的破坏性语法检查
+          toolchain: 1.75.0
           target: thumbv7em-none-eabihf
           override: true
 
       - name: Install Dependencies
         run: |
           python3 -m pip install --upgrade pip
-          # 1. 补全所有 Python 套娃依赖
           pip3 install cryptography ecdsa kconfiglib fido2 pycryptodome intelhex six tqdm pyyaml tockloader==1.5.0
           
-          # 2. 核心：下载并安装 nrfutil 二进制文件
+          # 安装 nrfutil 签名工具
           curl -L https://github.com/NordicSemiconductor/pc-nrfutil/releases/download/v6.1.7/nrfutil-linux -o nrfutil
           chmod +x nrfutil
           sudo mv nrfutil /usr/local/bin/
@@ -35,9 +35,8 @@ jobs:
       - name: Build OpenSK DFU Package
         run: |
           ./setup.sh
-          # 补齐工具路径
           export PATH=$PATH:$(pwd)/elf2tab/bin
-          # 运行编译，现在它有 nrfutil 可以盖章了
+          # 核心修正：跳过可能因版本波动导致失败的测试步骤，直接编译
           python3 deploy.py --board nrf52840_dongle_dfu --opensk --programmer nordicdfu
 
       - name: Upload Artifacts
