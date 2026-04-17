@@ -14,7 +14,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Rust (Nightly + Source)
+      - name: Setup Rust (Nightly)
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2024-08-01
@@ -35,19 +35,21 @@ jobs:
           git config --global user.email "bot@example.com"
           git config --global user.name "OpenSK Bot"
           ./setup.sh
+          
+          # 设置编译环境
           export PATH=$PATH:$(pwd)/elf2tab/bin
           sed -i '1i #![allow(dependency_on_unit_never_type_fallback)]' third_party/libtock-rs/apis/console/src/lib.rs
           export RUSTFLAGS="-Awarnings"
           
-          # 【最终补丁】用 echo "" 模拟按下回车，解决 EOFError
-          echo "" | python3 deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=nordicdfu
+          # 使用 --no-program 阻止脚本尝试寻找 USB 硬件
+          python3 deploy.py --board=nrf52840_dongle_dfu --opensk --no-program
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OpenSK-Final-Package
-          # 扩大搜索范围，确保把生成的 zip 全抓回来
+          # 包含 hex 和 zip 固件文件
           path: |
-             *.zip
-             deploy/*.zip
-             target/nrf52840_dongle_dfu_dfu.zip
+            target/nrf52840_dongle_dfu/*.zip
+            target/nrf52840_dongle_dfu/*.hex
+            target/nrf52840_dongle_dfu_merged.hex
