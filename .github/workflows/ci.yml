@@ -36,20 +36,27 @@ jobs:
           git config --global user.name "OpenSK Bot"
           ./setup.sh
           
-          # 设置编译环境
+          # 设置环境变量
           export PATH=$PATH:$(pwd)/elf2tab/bin
           sed -i '1i #![allow(dependency_on_unit_never_type_fallback)]' third_party/libtock-rs/apis/console/src/lib.rs
           export RUSTFLAGS="-Awarnings"
           
-          # 使用 --no-program 阻止脚本尝试寻找 USB 硬件
-          python3 deploy.py --board=nrf52840_dongle_dfu --opensk --no-program
+          # 【核心改动】不再调用 deploy.py，直接手动触发构建流程
+          # 1. 编译核心库
+          ./tools/run_cargo.sh build --board=nrf52840_dongle_dfu --opensk --release
+          
+          # 2. 生成 TAB 文件
+          ./tools/update_tab.sh nrf52840_dongle_dfu opensk
+          
+          # 3. 手动生成 DFU 包 (模拟 deploy.py 的行为)
+          mkdir -p final_artifacts
+          nrfutil pkg generate --hw-version 52 --sd-req 0x00 \
+            --application-version 1 \
+            --application target/tab/nrf52840_dongle_dfu/opensk.tab \
+            final_artifacts/opensk_nrf52840_dongle.zip
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OpenSK-Final-Package
-          # 包含 hex 和 zip 固件文件
-          path: |
-            target/nrf52840_dongle_dfu/*.zip
-            target/nrf52840_dongle_dfu/*.hex
-            target/nrf52840_dongle_dfu_merged.hex
+          path: final_artifacts/
