@@ -24,19 +24,18 @@ jobs:
       - name: Install Python Dependencies
         run: |
           python3 -m pip install --upgrade pip
-          # 锁死 tockloader==1.5.0 解决致命的兼容性冲突
-          pip3 install cryptography ecdsa kconfiglib fido2 pycryptodome intelhex six tockloader==1.5.0
+          # 核心全家桶：这次加上了 tqdm 和 pyyaml，锁死 tockloader
+          pip3 install cryptography ecdsa kconfiglib fido2 pycryptodome intelhex six tqdm pyyaml tockloader==1.5.0
 
       - name: Build OpenSK DFU Package
         run: |
-          # 1. 环境补丁初始化
+          # 1. 环境初始化
           ./setup.sh
           
-          # 2. 补齐关键工具路径
+          # 2. 补齐工具路径
           export PATH=$PATH:$(pwd)/elf2tab/bin
           
-          # 3. 使用验证过的 board 名称和参数
-          # 这样生成的 ZIP 会自动避开板子上那块“写保护”的红色区域
+          # 3. 运行编译
           python3 deploy.py --board nrf52840_dongle_dfu --opensk --programmer nordicdfu
 
       - name: Upload Artifacts
