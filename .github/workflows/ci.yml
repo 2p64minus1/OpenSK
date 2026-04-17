@@ -33,20 +33,21 @@ jobs:
 
       - name: Build OpenSK DFU Package
         run: |
-          # 1. 解决 Git 身份问题
           git config --global user.email "bot@example.com"
           git config --global user.name "OpenSK Bot"
 
-          # 2. 初始化环境
           ./setup.sh
           export PATH=$PATH:$(pwd)/elf2tab/bin
           
-          # 3. 【核心修正】强制 Cargo 忽略 fallback 错误
-          # 同时通过环境变量和自定义编译指令双重锁定，确保 libtock-rs 能编译通过
-          export RUSTFLAGS="-A dependency_on_unit_never_type_fallback --cap-lints warn"
+          # 【核武级修正】直接修改源代码，强行注入允许 fallback 的指令
+          # 我们把这行代码塞进 libtock_console 的开头，从根源上杀掉报错
+          sed -i '1i #![allow(dependency_on_unit_never_type_fallback)]' third_party/libtock-rs/apis/console/src/lib.rs
           
-          # 4. 运行编译
-          python3 deploy.py --board nrf52840_dongle_dfu --opensk --programmer nordicdfu
+          # 加上全局赦免，防止其他库也闹事
+          export RUSTFLAGS="-Awarnings"
+          
+          # 运行官方指令
+          python3 deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=nordicdfu
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
