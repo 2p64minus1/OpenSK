@@ -14,11 +14,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Rust (1.80 for OpenSK v1.0.0)
+      - name: Setup Rust (Nightly for Features)
         uses: actions-rs/toolchain@v1
         with:
-          # 满足顶层代码的最低要求
-          toolchain: 1.80.0
+          # 直接上 nightly，解决所有 #[feature] 限制报错
+          toolchain: nightly-2024-08-01
           target: thumbv7em-none-eabihf
           override: true
 
@@ -27,22 +27,29 @@ jobs:
           python3 -m pip install --upgrade pip
           pip3 install cryptography ecdsa kconfiglib fido2 pycryptodome intelhex six tqdm pyyaml tockloader==1.5.0
           
-          # 下载 nrfutil 签名工具
           curl -L https://github.com/NordicSemiconductor/pc-nrfutil/releases/download/v6.1.7/nrfutil-linux -o nrfutil
           chmod +x nrfutil
           sudo mv nrfutil /usr/local/bin/
 
       - name: Build OpenSK DFU Package
         run: |
-          # 1. 环境初始化
+          # 告诉 git 我是谁，解决那个身份未知的报错
+          git config --global user.email "bot@example.com"
+          git config --global user.name "OpenSK Bot"
+
           ./setup.sh
-          
-          # 2. 补齐工具路径
           export PATH=$PATH:$(pwd)/elf2tab/bin
           
-          # 3. 核心修正：设置环境变量，忽略那些让编译崩溃的旧语法警告
-          # RUSTFLAGS="--cap-lints warn" 会把所有报错降级为警告，保送编译通过
+          # 允许旧语法的警告通过
           export RUSTFLAGS="--cap-lints warn"
           
-          # 4. 运行编译
+          # 运行编译
           python3 deploy.py --board nrf52840_dongle_dfu --opensk --programmer nordicdfu
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenSK-Final-Package
+          path: |
+            deploy/*.hex
+            deploy/*.zip
