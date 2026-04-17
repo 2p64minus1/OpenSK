@@ -20,7 +20,6 @@ jobs:
           toolchain: nightly-2024-08-01
           target: thumbv7em-none-eabihf
           override: true
-          # 关键：加上 rust-src 组件，解决最终报错
           components: rust-src
 
       - name: Install Dependencies
@@ -34,14 +33,19 @@ jobs:
 
       - name: Build OpenSK DFU Package
         run: |
+          # 1. 解决 Git 身份问题
           git config --global user.email "bot@example.com"
           git config --global user.name "OpenSK Bot"
 
+          # 2. 初始化环境
           ./setup.sh
           export PATH=$PATH:$(pwd)/elf2tab/bin
-          export RUSTFLAGS="--cap-lints warn"
           
-          # 运行最终编译
+          # 3. 【核心修正】强制 Cargo 忽略 fallback 错误
+          # 同时通过环境变量和自定义编译指令双重锁定，确保 libtock-rs 能编译通过
+          export RUSTFLAGS="-A dependency_on_unit_never_type_fallback --cap-lints warn"
+          
+          # 4. 运行编译
           python3 deploy.py --board nrf52840_dongle_dfu --opensk --programmer nordicdfu
 
       - name: Upload Artifacts
