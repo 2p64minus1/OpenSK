@@ -14,13 +14,14 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup Rust (Nightly for Features)
+      - name: Setup Rust (Nightly + Source)
         uses: actions-rs/toolchain@v1
         with:
-          # 直接上 nightly，解决所有 #[feature] 限制报错
           toolchain: nightly-2024-08-01
           target: thumbv7em-none-eabihf
           override: true
+          # 关键：加上 rust-src 组件，解决最终报错
+          components: rust-src
 
       - name: Install Dependencies
         run: |
@@ -33,17 +34,14 @@ jobs:
 
       - name: Build OpenSK DFU Package
         run: |
-          # 告诉 git 我是谁，解决那个身份未知的报错
           git config --global user.email "bot@example.com"
           git config --global user.name "OpenSK Bot"
 
           ./setup.sh
           export PATH=$PATH:$(pwd)/elf2tab/bin
-          
-          # 允许旧语法的警告通过
           export RUSTFLAGS="--cap-lints warn"
           
-          # 运行编译
+          # 运行最终编译
           python3 deploy.py --board nrf52840_dongle_dfu --opensk --programmer nordicdfu
 
       - name: Upload Artifacts
