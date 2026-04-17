@@ -1,27 +1,41 @@
-name: Build-My-OpenSK-Firmware
+name: Build OpenSK for Nordic Dongle
 
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout OpenSK
+        uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
-      - name: Setup Environment
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: thumbv7em-none-eabihf
+          override: true
+
+      - name: Install Python Dependencies
         run: |
-          ./setup.sh
-          pip3 install -r requirements.txt
+          python3 -m pip install --upgrade pip
+          pip3 install cryptography ecdsa kconfiglib
 
-      - name: Build nRF52840 Dongle Hex
+      - name: Build OpenSK DFU Package
         run: |
-          python3 deploy.py --board nrf52840_dongle_opensk --opensk --programmer none
+          # 核心修正：指定 --programmer nordicdfu 适配官方蓝色板子
+          # 这会自动处理地址偏移，避免冲突
+          python3 deploy.py --board nrf52840_dongle_opensk --opensk --programmer nordicdfu --no-unlock
 
-      - name: Upload Hex to 6800H
+      - name: Archive Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: My-OpenSK-Hex
+          name: OpenSK-Nordic-DFU-Package
           path: |
-            target/**/*.hex
+            deploy/nrf52840_dongle_opensk_dfu.zip
+            deploy/nrf52840_dongle_opensk.hex
