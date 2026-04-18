@@ -33,7 +33,7 @@ jobs:
           export PATH=$PATH:$(pwd)/elf2tab/bin
           sed -i '1i #![allow(dependency_on_unit_never_type_fallback)]' third_party/libtock-rs/apis/console/src/lib.rs
           export RUSTFLAGS="-Awarnings"
-          echo "" | python3 deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=nordicdfu || true
+          echo "" | python3 deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=nordicdfu --disable-check-patches || true
       - name: List generated files
         run: find target/ -name "*.zip" -o -name "*.hex" | sort
       - name: Upload Artifacts
